@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -14,7 +12,7 @@ services:
       - "5432:5432"
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,15 +21,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: runner 
+      target: runner
     # Note: For local development with hot-reload, you might want a different setup 
     # (e.g. mounting volumes and running `npm run dev`), but this uses the production build as requested.
     # To run in dev mode via docker, you'd override the command.
     container_name: ads-tracker-web
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ads_tracker}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ads_tracker}?schema=public
+      NODE_ENV: production
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      # Add other env vars here
     ports:
       - "3000:3000"
     depends_on:

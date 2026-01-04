@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  name            String
+  role            UserRole       @default(VIEWER)
+  password        String?
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  business_access BusinessUser[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model BusinessUser {
+  id          String   @id @default(uuid())
+  business_id String
+  user_id     String
+  created_at  DateTime @default(now())
+  business    Business @relation(fields: [business_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([business_id, user_id])
+  @@index([business_id])
+  @@index([user_id])
+}
+
+model Business {
+  id             String         @id @default(uuid())
+  name           String
+  ad_account_id  String         @unique
+  color_code     String
+  is_active      Boolean        @default(true)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  access_token   String?
+  business_users BusinessUser[]
+  campaigns      Campaign[]
+  daily_insights DailyInsight[]
+
+  @@index([created_at])
+  @@index([is_active])
+}
+
+model Campaign {
+  id          String                 @id
+  business_id String
+  name        String
+  objective   String?
+  status      String?
+  created_at  DateTime               @default(now())
+  updated_at  DateTime               @updatedAt
+  ad_sets     AdSet[]
+  business    Business               @relation(fields: [business_id], references: [id], onDelete: Cascade)
+  insights    CampaignDailyInsight[]
+
+  @@index([business_id])
+  @@index([status])
+}
+
+model AdSet {
+  id          String              @id
+  campaign_id String
+  name        String
+  status      String?
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @updatedAt
+  ads         Ad[]
+  campaign    Campaign            @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  insights    AdSetDailyInsight[]
+
+  @@index([campaign_id])
+  @@index([status])
+}
+
+model Ad {
+  id                    String           @id
+  ad_set_id             String
+  name                  String
+  status                String?
+  created_at            DateTime         @default(now())
+  updated_at            DateTime         @updatedAt
+  creative_type         String?
+  creative_url          String?
+  thumbnail_url         String?
+  creative_body         String?
+  creative_title        String?
+  creative_dynamic_data Json?
+  ad_set                AdSet            @relation(fields: [ad_set_id], references: [id], onDelete: Cascade)
+  insights              AdDailyInsight[]
+
+  @@index([ad_set_id])
+  @@index([status])
+  @@index([creative_type])
+}
+
+model DailyInsight {
+  id              String   @id @default(uuid())
+  business_id     String
+  date            DateTime
+  spend           Float
+  impressions     Int
+  clicks          Int
+  reach           Int
+  frequency       Float
+  leads           Int
+  hook_rate       Float    @default(0)
+  hold_rate       Float    @default(0)
+  cpc             Float    @default(0)
+  cpl             Float    @default(0)
+  created_at      DateTime @default(now())
+  leads_instagram Int      @default(0)
+  leads_messenger Int      @default(0)
+  leads_whatsapp  Int      @default(0)
+  conversions     Int      @default(0)
+  cpm             Float    @default(0)
+  ctr             Float    @default(0)
+  cvr             Float    @default(0)
+  revenue         Float    @default(0)
+  roas            Float    @default(0)
+  business        Business @relation(fields: [business_id], references: [id], onDelete: Cascade)
+
+  @@unique([business_id, date])
+  @@index([business_id])
+  @@index([date])
+}
+
+model CampaignDailyInsight {
+  id              String   @id @default(uuid())
+  campaign_id     String
+  date            DateTime
+  spend           Float
+  impressions     Int
+  clicks          Int
+  leads           Int
+  cpc             Float    @default(0)
+  cpl             Float    @default(0)
+  created_at      DateTime @default(now())
+  leads_instagram Int      @default(0)
+  leads_messenger Int      @default(0)
+  leads_whatsapp  Int      @default(0)
+  conversions     Int      @default(0)
+  cpm             Float    @default(0)
+  ctr             Float    @default(0)
+  cvr             Float    @default(0)
+  revenue         Float    @default(0)
+  roas            Float    @default(0)
+  campaign        Campaign @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  @@unique([campaign_id, date])
+  @@index([campaign_id])
+  @@index([date])
+}
+
+model AdSetDailyInsight {
+  id              String   @id @default(uuid())
+  ad_set_id       String
+  date            DateTime
+  spend           Float
+  impressions     Int
+  clicks          Int
+  leads           Int
+  cpc             Float    @default(0)
+  cpl             Float    @default(0)
+  created_at      DateTime @default(now())
+  leads_instagram Int      @default(0)
+  leads_messenger Int      @default(0)
+  leads_whatsapp  Int      @default(0)
+  conversions     Int      @default(0)
+  cpm             Float    @default(0)
+  ctr             Float    @default(0)
+  cvr             Float    @default(0)
+  revenue         Float    @default(0)
+  roas            Float    @default(0)
+  ad_set          AdSet    @relation(fields: [ad_set_id], references: [id], onDelete: Cascade)
+
+  @@unique([ad_set_id, date])
+  @@index([ad_set_id])
+  @@index([date])
+}
+
+model AdDailyInsight {
+  id              String   @id @default(uuid())
+  ad_id           String
+  date            DateTime
+  spend           Float
+  impressions     Int
+  clicks          Int
+  leads           Int
+  cpc             Float    @default(0)
+  cpl             Float    @default(0)
+  created_at      DateTime @default(now())
+  leads_instagram Int      @default(0)
+  leads_messenger Int      @default(0)
+  leads_whatsapp  Int      @default(0)
+  conversions     Int      @default(0)
+  cpm             Float    @default(0)
+  ctr             Float    @default(0)
+  cvr             Float    @default(0)
+  revenue         Float    @default(0)
+  roas            Float    @default(0)
+  ad              Ad       @relation(fields: [ad_id], references: [id], onDelete: Cascade)
+
+  @@unique([ad_id, date])
+  @@index([ad_id])
+  @@index([date])
+}
+
+model SystemSettings {
+  key   String @id
+  value String
+}
+
+enum UserRole {
+  ADMIN
+  MEDIA_BUYER
+  VIEWER
+}
