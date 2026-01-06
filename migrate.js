@@ -10,22 +10,55 @@ async function runSQLMigrations() {
     console.log('📦 Running database migrations...');
 
     const migrations = `
--- Add missing columns to existing tables
-ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "access_token" TEXT;
-ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "is_active" BOOLEAN NOT NULL DEFAULT true;
+-- Create base Business table first
+CREATE TABLE IF NOT EXISTS "Business" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "ad_account_id" TEXT NOT NULL,
+    "color_code" TEXT NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "access_token" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Business_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Business_ad_account_id_key" ON "Business"("ad_account_id");
+CREATE INDEX IF NOT EXISTS "Business_created_at_idx" ON "Business"("created_at");
 CREATE INDEX IF NOT EXISTS "Business_is_active_idx" ON "Business"("is_active");
 
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "leads_instagram" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "leads_messenger" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "leads_whatsapp" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "conversions" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "cpm" DOUBLE PRECISION NOT NULL DEFAULT 0;
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "ctr" DOUBLE PRECISION NOT NULL DEFAULT 0;
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "cvr" DOUBLE PRECISION NOT NULL DEFAULT 0;
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "revenue" DOUBLE PRECISION NOT NULL DEFAULT 0;
-ALTER TABLE "DailyInsight" ADD COLUMN IF NOT EXISTS "roas" DOUBLE PRECISION NOT NULL DEFAULT 0;
+-- Create base DailyInsight table
+CREATE TABLE IF NOT EXISTS "DailyInsight" (
+    "id" TEXT NOT NULL,
+    "business_id" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "spend" DOUBLE PRECISION NOT NULL,
+    "impressions" INTEGER NOT NULL,
+    "clicks" INTEGER NOT NULL,
+    "reach" INTEGER NOT NULL,
+    "frequency" DOUBLE PRECISION NOT NULL,
+    "leads" INTEGER NOT NULL,
+    "hook_rate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "hold_rate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "cpc" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "cpl" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "leads_instagram" INTEGER NOT NULL DEFAULT 0,
+    "leads_messenger" INTEGER NOT NULL DEFAULT 0,
+    "leads_whatsapp" INTEGER NOT NULL DEFAULT 0,
+    "conversions" INTEGER NOT NULL DEFAULT 0,
+    "cpm" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "ctr" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "cvr" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "revenue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "roas" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    CONSTRAINT "DailyInsight_pkey" PRIMARY KEY ("id")
+);
 
--- Update DailyInsight constraint to CASCADE
+CREATE INDEX IF NOT EXISTS "DailyInsight_business_id_idx" ON "DailyInsight"("business_id");
+CREATE INDEX IF NOT EXISTS "DailyInsight_date_idx" ON "DailyInsight"("date");
+CREATE UNIQUE INDEX IF NOT EXISTS "DailyInsight_business_id_date_key" ON "DailyInsight"("business_id", "date");
+
 ALTER TABLE "DailyInsight" DROP CONSTRAINT IF EXISTS "DailyInsight_business_id_fkey";
 ALTER TABLE "DailyInsight" ADD CONSTRAINT "DailyInsight_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "Business"("id") ON DELETE CASCADE;
 

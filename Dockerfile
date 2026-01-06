@@ -48,9 +48,9 @@ RUN mkdir .next && chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema for migrations
-# Note: Not copying prisma.config.ts to avoid module resolution issues in standalone build
+# Copy Prisma schema and config for migrations
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
 # Copy full node_modules for migration script (bcryptjs, @prisma/client, pg dependencies)
 # These aren't included in standalone build but needed for migrations
