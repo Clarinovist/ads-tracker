@@ -10,6 +10,13 @@ async function runSQLMigrations() {
     console.log('📦 Running database migrations...');
 
     const migrations = `
+-- Create UserRole enum type
+DO $$ BEGIN
+    CREATE TYPE "UserRole" AS ENUM ('ADMIN');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 -- Create base Business table first
 CREATE TABLE IF NOT EXISTS "Business" (
     "id" TEXT NOT NULL,
