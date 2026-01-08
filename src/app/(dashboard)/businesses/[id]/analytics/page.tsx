@@ -158,7 +158,6 @@ export default async function BusinessAnalyticsPage({
                 <OverviewCharts
                     data={chartData}
                     businesses={[business]} // Pass pure business object, minimal fields
-                    totalKpi={totalKpi}
                 />
             </div>
 

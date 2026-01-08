@@ -132,6 +132,21 @@ export async function fetchAds(adAccountId: string, accessToken: string): Promis
     return await fetchMetaList<MetaAd>(url);
 }
 
+export interface MetaLead {
+    id: string;
+    created_time: string;
+    ad_id: string;
+    ad_name: string;
+    adset_name: string;
+    campaign_name: string;
+    field_data: Array<{ name: string; values: string[] }>;
+}
+
+export async function fetchLeads(adId: string, accessToken: string): Promise<MetaLead[]> {
+    const url = `https://graph.facebook.com/v19.0/${adId}/leads?fields=id,created_time,ad_id,ad_name,adset_name,campaign_name&access_token=${accessToken}&limit=500`;
+    return await fetchMetaList<MetaLead>(url);
+}
+
 // Helper to handle pagination if needed, or simple fetch
 async function fetchMetaList<T>(url: string): Promise<T[]> {
     let results: T[] = [];

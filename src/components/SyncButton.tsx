@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, ChevronDown, Calendar, History } from "lucide-react";
+import { RefreshCw, ChevronDown, Calendar, History, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import {
@@ -15,13 +15,16 @@ export function SyncButton() {
     const [isSyncing, setIsSyncing] = useState(false);
     const router = useRouter();
 
-    const handleSync = async (mode: 'daily' | 'smart') => {
+    const handleSync = async (mode: 'daily' | 'smart' | 'leads') => {
         if (isSyncing) return;
 
         setIsSyncing(true);
         try {
-            const url = mode === 'smart' ? "/api/sync?mode=smart" : "/api/sync";
-            const res = await fetch(url, { method: "POST" });
+            const url = mode === 'smart'
+                ? "/api/sync?mode=smart"
+                : mode === 'leads'
+                    ? "/api/sync/leads"
+                    : "/api/sync"; const res = await fetch(url, { method: "POST" });
             const data = await res.json();
 
             if (data.success) {
@@ -64,6 +67,10 @@ export function SyncButton() {
                 <DropdownMenuItem onClick={() => handleSync('smart')} disabled={isSyncing}>
                     <History className="mr-2 h-4 w-4" />
                     <span>Smart Sync (7 Days)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSync('leads')} disabled={isSyncing}>
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>Sync Leads (Full Trace)</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

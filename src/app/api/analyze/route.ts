@@ -1,25 +1,26 @@
 
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-export const maxDuration = 30;
+export const maxDuration = 60; // Increased to 60s
 
 export async function POST(req: Request) {
     try {
-        const { from, to, prompt: userPrompt, provider = 'gemini', modelName, language = 'id' } = await req.json();
+        const { messages, from, to, provider = 'openrouter', modelName, language = 'id', conversationId } = await req.json();
 
-        console.log('--- Analyze Call ---');
+        console.log('--- Chat Analysis Call ---');
         console.log('From:', from, 'To:', to);
-        console.log('Provider:', provider, 'Model:', modelName, 'Language:', language);
+        console.log('Provider:', provider, 'Model Name Request:', modelName);
 
         if (!from || !to) {
-            return NextResponse.json({ error: 'Date range is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Date range is required for context.' }, { status: 400 });
         }
 
-        // 1. Fetch Data
+        // 1. Fetch Data (Context)
         const insights = await prisma.dailyInsight.findMany({
             where: {
                 date: {
@@ -31,8 +32,6 @@ export async function POST(req: Request) {
                 date: 'asc',
             },
         });
-
-        console.log('Insights found:', insights.length);
 
         // 2. Aggregate Data
         const totals = insights.reduce(
@@ -46,47 +45,45 @@ export async function POST(req: Request) {
             { spend: 0, impressions: 0, clicks: 0, leads: 0, conversions: 0 }
         );
 
-        // Revenue/ROAS removed as user does not track revenue.
         const cpa = totals.conversions > 0 ? totals.spend / totals.conversions : 0;
         const cpl = totals.leads > 0 ? totals.spend / totals.leads : 0;
 
-        // 3. Select Provider
+        // 3. Provider & Model Selection
         let model;
 
-        if (provider === 'gemini') {
-            if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-                return NextResponse.json({ error: 'Gemini API Key is missing.' }, { status: 500 });
-            }
-            const google = createGoogleGenerativeAI({
-                apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-            });
-            model = google(modelName || 'gemini-2.0-flash-exp');
-        } else if (provider === 'openrouter') {
-            if (!process.env.OPENROUTER_API_KEY) {
-                return NextResponse.json({ error: 'OpenRouter API Key is missing.' }, { status: 500 });
-            }
-            const openrouter = createOpenAI({
+        // Resolve model ID from Environment Variables
+        let targetModelId = process.env.AI_MODEL_GEMINI; // Default fallback
+        if (modelName === 'gemini') targetModelId = process.env.AI_MODEL_GEMINI;
+        else if (modelName === 'claude') targetModelId = process.env.AI_MODEL_CLAUDE;
+        else if (modelName === 'gpt') targetModelId = process.env.AI_MODEL_GPT;
+
+        // Fallback defaults
+        if (!targetModelId) {
+            if (modelName === 'claude') targetModelId = 'anthropic/claude-3-opus';
+            else if (modelName === 'gpt') targetModelId = 'openai/gpt-4o';
+            else targetModelId = 'google/gemini-2.0-flash-exp';
+        }
+
+        if (provider === 'openrouter') {
+            if (!process.env.OPENROUTER_API_KEY) throw new Error('OpenRouter API Key missing');
+            const openrouter = createOpenAICompatible({
+                name: 'openrouter',
                 apiKey: process.env.OPENROUTER_API_KEY,
                 baseURL: 'https://openrouter.ai/api/v1',
             });
-            model = openrouter(modelName || 'gpt-4o-mini');
-        } else if (provider === 'openai') {
-            // OpenAI option removed from frontend, but kept here for backward compatibility or direct API usage if needed.
-            if (!process.env.OPENAI_API_KEY) {
-                return NextResponse.json({ error: 'OpenAI API Key is missing.' }, { status: 500 });
-            }
-            const openai = createOpenAI({
-                apiKey: process.env.OPENAI_API_KEY,
-            });
-            model = openai('gpt-4o-mini');
+            model = openrouter(targetModelId || 'google/gemini-2.0-flash-exp');
         } else {
-            return NextResponse.json({ error: 'Invalid provider selected.' }, { status: 400 });
+            if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) throw new Error('Gemini API Key missing');
+            const google = createGoogleGenerativeAI({
+                apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+            });
+            model = google(targetModelId?.split('/')[1] || 'gemini-1.5-pro-latest');
         }
 
-        // 4. Construct System Prompt
+        // 4. System Prompt Construction
         const languageInstruction = language === 'id'
-            ? "PENTING: Jawablah dalam Bahasa Indonesia yang profesional dan mudah dipahami."
-            : "IMPORTANT: Respond in professional, easy-to-understand English.";
+            ? "PENTING: Jawablah dalam Bahasa Indonesia yang profesional, format yang rapi (gunakan Heading, Bullet points, Bold), dan mudah dipahami."
+            : "IMPORTANT: Respond in professional English, use clear formatting (Headings, Bullets, Bold).";
 
         const formatCurrency = (amount: number) => {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
@@ -96,54 +93,112 @@ export async function POST(req: Request) {
       You are an expert Data Analyst for an advertising agency.
       ${languageInstruction}
       
-      Analyze the following ad performance data for the period ${from} to ${to}.
-      
-      Total Spend: ${formatCurrency(totals.spend)}
-      Impressions: ${totals.impressions}
-      Clicks: ${totals.clicks}
-      Leads: ${totals.leads}
-      Conversions: ${totals.conversions}
-      CPA: ${formatCurrency(cpa)}
-      CPL: ${formatCurrency(cpl)}
+      CONTEXT DATA (Period: ${from} to ${to}):
+      - Total Spend: ${formatCurrency(totals.spend)}
+      - Impressions: ${totals.impressions}
+      - Clicks: ${totals.clicks} (CTR: ${totals.impressions > 0 ? ((totals.clicks / totals.impressions) * 100).toFixed(2) : 0}%)
+      - Leads: ${totals.leads}
+      - Conversions: ${totals.conversions}
+      - CPA: ${formatCurrency(cpa)}
+      - CPL: ${formatCurrency(cpl)}
 
-      Daily Breakdown (first 5 and last 5 days):
+      Daily Data Sample (First 5 & Last 5 days):
       ${JSON.stringify(insights.slice(0, 5).map(d => ({ date: d.date, spend: d.spend, leads: d.leads, cpl: d.cpl })))}
       ...
       ${JSON.stringify(insights.slice(-5).map(d => ({ date: d.date, spend: d.spend, leads: d.leads, cpl: d.cpl })))}
 
-      Your goal is to provide a concise, actionable summary. 
-      Highlight trends, good/bad performance, and possible next steps.
-      Format your response in Markdown.
-      Use bolding for key metrics.
+      INSTRUCTIONS:
+      - Start with a clear "Executive Summary".
+      - Use **Bold** for important numbers.
+      - Use Bullet points for lists.
+      - If asked follow-up questions, use the Context Data above to answer accurately.
     `;
 
-        // 5. Stream Response
+        // 5. Stream Chat
+        // Sanitize messages
+        const sanitizedMessages = messages.map((m: any) => {
+            let content = '';
+            if (typeof m.content === 'string') {
+                content = m.content;
+            } else if (Array.isArray(m.content)) {
+                content = m.content.map((c: any) => c.text || JSON.stringify(c)).join('');
+            } else {
+                content = JSON.stringify(m.content) || '';
+            }
+            return {
+                role: m.role,
+                content: content
+            };
+        });
+
+        console.log('Sanitized Messages Payload:', JSON.stringify(sanitizedMessages, null, 2));
+
+        // 5. Stream Chat
         const result = await streamText({
             model,
             system: systemPrompt,
-            prompt: userPrompt || 'Analyze this data.',
-            onFinish: ({ text }) => {
-                console.log('Analysis completed. Length:', text.length);
-                console.log('Snippet:', text.substring(0, 100));
+            messages: sanitizedMessages, // Pass the full conversation history, sanitized to ensure string content
+            onFinish: async ({ text }) => {
+                // Save conversation to history
+                try {
+                    // We only save the response if it seems like an analysis (length > 50 chars)
+                    if (text.length > 50) {
+                        try {
+                            // Find the first user message for prompt
+                            const firstUserMessage = sanitizedMessages.find((m: any) => m.role === 'user');
+                            // Build full conversation including this response
+                            const fullConversation = [
+                                ...sanitizedMessages,
+                                { role: 'assistant', content: text }
+                            ];
+
+
+                            if (conversationId) {
+                                // Upsert: create if not exists, update if exists
+                                await prisma.analysisHistory.upsert({
+                                    where: { id: conversationId },
+                                    update: {
+                                        response: text,
+                                        messages: fullConversation,
+                                    },
+                                    create: {
+                                        id: conversationId,
+                                        prompt: firstUserMessage?.content?.substring(0, 200) || 'No prompt',
+                                        response: text,
+                                        messages: fullConversation,
+                                        provider,
+                                        model: targetModelId || 'unknown',
+                                        date_from: new Date(from),
+                                        date_to: new Date(to),
+                                    }
+                                });
+                            } else {
+                                // Create new conversation without ID
+                                await prisma.analysisHistory.create({
+                                    data: {
+                                        prompt: firstUserMessage?.content?.substring(0, 200) || 'No prompt',
+                                        response: text,
+                                        messages: fullConversation,
+                                        provider,
+                                        model: targetModelId || 'unknown',
+                                        date_from: new Date(from),
+                                        date_to: new Date(to),
+                                    }
+                                });
+                            }
+                        } catch (innerDbError) {
+                            console.error('Failed to save analysis history record:', innerDbError);
+                        }
+                    }
+                } catch (dbError) {
+                    console.error('Failed to save history (outer):', dbError);
+                }
             },
         });
 
         return result.toTextStreamResponse();
     } catch (error: any) {
         console.error('AI Analysis Error:', error);
-
-        // Handle Quota/Rate Limit Errors
-        if (
-            error.status === 429 ||
-            (error.message && error.message.toLowerCase().includes('quota')) ||
-            (error.message && error.message.toLowerCase().includes('resource_exhausted'))
-        ) {
-            return NextResponse.json(
-                { error: 'Kuota AI habis (Rate Limit). Mohon tunggu beberapa saat atau ganti provider.' },
-                { status: 429 }
-            );
-        }
-
-        return NextResponse.json({ error: 'Gagal menganalisis data. Coba lagi nanti.' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Analysis failed.' }, { status: 500 });
     }
 }

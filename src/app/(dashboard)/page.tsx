@@ -5,6 +5,7 @@ import CampaignsTable, { CampaignRow } from '@/components/CampaignsTable';
 import AdsTable, { AdRow } from '@/components/AdsTable';
 import { startOfDay, endOfDay, format } from 'date-fns';
 import { MetricsCard } from '@/components/MetricsCard';
+import { LeadTimeDistribution } from '@/components/analytics/LeadTimeDistribution';
 import {
     DollarSign,
     Users,
@@ -122,11 +123,11 @@ export default async function DashboardPage({
     const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
 
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-8 pb-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-200/60 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">Global Dashboard</h1>
-                    <p className="text-slate-500">Omni-channel performance overview across all businesses.</p>
+                    <p className="text-slate-500 mt-1">Omni-channel performance overview across all businesses.</p>
                 </div>
                 <DateRangePicker />
             </div>
@@ -138,13 +139,34 @@ export default async function DashboardPage({
                     <p className="text-slate-500">Go to Businesses to connect your first Meta Ad Account.</p>
                 </div>
             ) : (
-                <>
+                <div className="space-y-8 animate-in fade-in duration-500">
+                    {/* Primary Stats - Hero Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <MetricsCard
                             title="Total Spend"
                             value={currencyFormatter.format(totalKpi.spend)}
                             icon={DollarSign}
+                            iconColor="text-indigo-600"
+                            className="md:col-span-2 bg-gradient-to-br from-white to-slate-50/50"
                         />
+                        <MetricsCard
+                            title="Total Leads"
+                            value={totalKpi.leads}
+                            icon={Users}
+                            iconColor="text-purple-600"
+                            className="bg-white"
+                        />
+                        <MetricsCard
+                            title="Conversions"
+                            value={totalKpi.conversions}
+                            icon={Zap}
+                            iconColor="text-amber-500"
+                            className="bg-white"
+                        />
+                    </div>
+
+                    {/* Secondary Metrics - Efficiency Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <MetricsCard
                             title="CPM"
                             value={currencyFormatter.format(globalCPM)}
@@ -160,48 +182,45 @@ export default async function DashboardPage({
                             description="Cost per link click"
                         />
                         <MetricsCard
-                            title="Leads"
-                            value={totalKpi.leads}
-                            icon={Users}
-                            iconColor="text-purple-500"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <MetricsCard
                             title="CTR"
                             value={`${globalCTR.toFixed(2)}%`}
                             icon={MousePointer2}
-                            iconColor="text-blue-500"
-                            description="Efficiency of ad delivery"
+                            iconColor="text-sky-500"
+                            description="Click-through rate"
                         />
                         <MetricsCard
                             title="Avg CPL"
                             value={currencyFormatter.format(globalCPL)}
                             icon={Target}
                             iconColor="text-rose-500"
-                            description="Cost per lead acquisition"
-                        />
-                        <MetricsCard
-                            title="Conversions"
-                            value={totalKpi.conversions}
-                            icon={Zap}
-                            iconColor="text-amber-500"
-                            description="Total high-value actions"
+                            description="Cost per lead"
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-3">
-                            <OverviewCharts data={chartData} businesses={businesses} totalKpi={totalKpi} />
+                    {/* Charts Section */}
+                    <div className="grid grid-cols-1 gap-4">
+                        <OverviewCharts data={chartData} businesses={businesses} />
+                        <LeadTimeDistribution dateFrom={fromDate} dateTo={toDate} />
+                    </div>
+
+                    {/* Detailed Tables Section */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 pt-4">
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                                <div className="w-1 h-5 bg-indigo-500 rounded-full" />
+                                Top Campaigns
+                            </h3>
+                            <CampaignsTable campaigns={campaignRows} />
+                        </div>
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                                <div className="w-1 h-5 bg-pink-500 rounded-full" />
+                                Top Ads
+                            </h3>
+                            <AdsTable ads={adRows} />
                         </div>
                     </div>
-
-                    <div className="space-y-6">
-                        <CampaignsTable campaigns={campaignRows} />
-                        <AdsTable ads={adRows} />
-                    </div>
-                </>
+                </div>
             )}
         </div>
     );
