@@ -5,7 +5,7 @@ import CampaignsTable, { CampaignRow } from '@/components/CampaignsTable';
 import AdsTable, { AdRow } from '@/components/AdsTable';
 import { startOfDay, endOfDay, format } from 'date-fns';
 import { MetricsCard } from '@/components/MetricsCard';
-import { LeadTimeDistribution } from '@/components/analytics/LeadTimeDistribution';
+import { MessagingTimeDistribution } from '@/components/analytics/MessagingTimeDistribution';
 import {
     DollarSign,
     Users,
@@ -200,7 +200,7 @@ export default async function DashboardPage({
                     {/* Charts Section */}
                     <div className="grid grid-cols-1 gap-4">
                         <OverviewCharts data={chartData} businesses={businesses} />
-                        <LeadTimeDistribution dateFrom={fromDate} dateTo={toDate} />
+                        <MessagingTimeDistribution dateFrom={fromDate.toISOString()} dateTo={toDate.toISOString()} />
                     </div>
 
                     {/* Detailed Tables Section */}

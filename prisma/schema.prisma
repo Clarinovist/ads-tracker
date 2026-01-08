@@ -46,6 +46,7 @@ model Business {
   campaigns      Campaign[]
   daily_insights DailyInsight[]
   leads          Lead[]
+  hourly_stats   HourlyStat[]
 
   @@index([created_at])
   @@index([is_active])
@@ -250,4 +251,21 @@ model Lead {
 
   @@index([business_id])
   @@index([created_time])
+}
+
+model HourlyStat {
+  id                      String   @id @default(uuid())
+  business_id             String
+  date                    DateTime // The day
+  hour                    Int      // 0-23
+  spend                   Float    @default(0)
+  impressions             Int      @default(0)
+  clicks                  Int      @default(0)
+  messaging_conversations Int      @default(0)
+  
+  business                Business @relation(fields: [business_id], references: [id], onDelete: Cascade)
+
+  @@unique([business_id, date, hour])
+  @@index([business_id])
+  @@index([date])
 }

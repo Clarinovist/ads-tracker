@@ -23,12 +23,19 @@ export function SyncButton() {
             const url = mode === 'smart'
                 ? "/api/sync?mode=smart"
                 : mode === 'leads'
-                    ? "/api/sync/leads"
-                    : "/api/sync"; const res = await fetch(url, { method: "POST" });
+                    ? "/api/sync/hourly"
+                    : "/api/sync";
+
+            const options: RequestInit = { method: "POST" };
+            if (mode === 'leads') { // 'leads' here refers to the 'Sync Hourly Stats' menu item
+                options.body = JSON.stringify({ days: 7 });
+            }
+
+            const res = await fetch(url, options);
             const data = await res.json();
 
             if (data.success) {
-                alert(`Sync (${mode === 'smart' ? '7 Days' : 'Today'}) completed successfully!`);
+                alert(`Sync (${mode === 'smart' ? '7 Days' : mode === 'leads' ? 'Hourly (7 Days)' : 'Today'}) completed successfully!`);
                 router.refresh();
             } else {
                 alert("Sync failed: " + (data.error || "Unknown error"));
@@ -70,7 +77,7 @@ export function SyncButton() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleSync('leads')} disabled={isSyncing}>
                     <Users className="mr-2 h-4 w-4" />
-                    <span>Sync Leads (Full Trace)</span>
+                    <span>Sync Hourly Stats (Messaging)</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
