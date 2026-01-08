@@ -15,7 +15,8 @@ import {
     Users,
     DollarSign,
     PlayCircle,
-    Filter
+    Filter,
+    Sparkles
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { startOfMonth, endOfDay, format, startOfDay } from "date-fns";
@@ -27,6 +28,14 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet";
+import AdCreativeAnalysis from "@/components/analyst/AdCreativeAnalysis";
 
 import { Suspense } from "react";
 
@@ -45,6 +54,7 @@ function AdsContent() {
         to: toParam ? endOfDay(new Date(toParam)) : endOfDay(new Date())
     });
     const [selectedAd, setSelectedAd] = useState<any>(null);
+    const [selectedAdForAnalysis, setSelectedAdForAnalysis] = useState<any>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -188,7 +198,16 @@ function AdsContent() {
                                                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(ad.aggregate.spend)}
                                             </p>
                                         </div>
-                                        <div className="text-right space-y-0.5">
+                                        <div className="text-right space-y-0.5 flex items-center gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                                                title="Analyze with AI"
+                                                onClick={() => setSelectedAdForAnalysis(ad)}
+                                            >
+                                                <Sparkles className="h-3.5 w-3.5" />
+                                            </Button>
                                             <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setSelectedAd(ad)}>
                                                 View Details
                                             </Button>
@@ -328,6 +347,27 @@ function AdsContent() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* AI Analysis Sheet */}
+            <Sheet open={!!selectedAdForAnalysis} onOpenChange={(open) => !open && setSelectedAdForAnalysis(null)}>
+                <SheetContent className="sm:max-w-xl w-[90vw]">
+                    <SheetHeader>
+                        <SheetTitle>Creative Analysis</SheetTitle>
+                        <SheetDescription>
+                            AI-powered insights for this ad creative
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-4 h-[calc(100vh-120px)]">
+                        {selectedAdForAnalysis && (
+                            <AdCreativeAnalysis
+                                adData={selectedAdForAnalysis}
+                                date={dateRange}
+                                isOpen={!!selectedAdForAnalysis}
+                            />
+                        )}
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

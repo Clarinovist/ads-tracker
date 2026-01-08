@@ -100,7 +100,7 @@ export default function LoginPage() {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-4 pb-8">
+                    <CardFooter className="flex flex-col gap-4 pt-6 pb-8">
                         <Button
                             type="submit"
                             className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-6 shadow-md transition-all active:scale-[0.98]"

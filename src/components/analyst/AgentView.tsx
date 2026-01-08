@@ -244,9 +244,9 @@ export default function AgentView() {
         <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between shrink-0">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Data Analyst Agent</h2>
+                    <h2 className="text-3xl font-bold tracking-tight">AI Command Center</h2>
                     <p className="text-muted-foreground">
-                        Chat with AI about your campaign performance.
+                        Tanya pertanyaan strategis tentang seluruh bisnis Anda.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -351,8 +351,14 @@ export default function AgentView() {
                                 New Conversation
                             </Button>
 
-                            <div className="text-xs text-muted-foreground mt-4">
-                                <p><strong>Tip:</strong> Select a date range, then ask a question in the chat on the right. Or just say "Analyze this" to get a full report.</p>
+                            <div className="text-xs text-muted-foreground mt-4 space-y-2">
+                                <p><strong>💡 Gunakan halaman ini untuk:</strong></p>
+                                <ul className="list-disc ml-4 space-y-1">
+                                    <li>Bandingkan performa antar campaign/adset</li>
+                                    <li>Analisa tren global bisnis</li>
+                                    <li>Tanya keputusan strategis</li>
+                                </ul>
+                                <p className="text-muted-foreground/70 italic">Untuk analisa per-iklan atau per-adset, gunakan tombol ✨ di halaman Ads atau Ad Sets.</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -367,7 +373,8 @@ export default function AgentView() {
                                 {messages.length === 0 && (
                                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
                                         <Sparkles className="h-12 w-12 mb-4" />
-                                        <p>Ready to analyze. Type a message below to start.</p>
+                                        <p className="font-medium">Command Center siap menerima perintah.</p>
+                                        <p className="text-sm mt-1">Tanyakan hal-hal strategis tentang seluruh bisnis Anda.</p>
                                     </div>
                                 )}
 
@@ -379,7 +386,7 @@ export default function AgentView() {
                                             }`}>
                                             {m.role === 'assistant' && (
                                                 <div className="flex justify-between items-start mb-2 border-b pb-2">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider opacity-70">AI Analyst</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider opacity-70">AI Command</span>
                                                     <Button variant="ghost" size="icon" className="h-4 w-4 text-muted-foreground hover:text-foreground" onClick={() => handleCopy(m.content)}>
                                                         <Copy className="h-3 w-3" />
                                                     </Button>
@@ -388,7 +395,19 @@ export default function AgentView() {
 
                                             <div className={`prose prose-sm max-w-none dark:prose-invert ${m.role === 'user' ? 'prose-headings:text-primary-foreground prose-p:text-primary-foreground prose-strong:text-primary-foreground' : ''
                                                 }`}>
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                <ReactMarkdown
+                                                    remarkPlugins={[remarkGfm]}
+                                                    components={{
+                                                        p: ({ node, ...props }) => <p className="mb-4 leading-7 last:mb-0" {...props} />,
+                                                        ul: ({ node, ...props }) => <ul className="my-4 ml-6 list-disc [&>li]:mt-2" {...props} />,
+                                                        ol: ({ node, ...props }) => <ol className="my-4 ml-6 list-decimal [&>li]:mt-2" {...props} />,
+                                                        li: ({ node, ...props }) => <li className="leading-7" {...props} />,
+                                                        h1: ({ node, ...props }) => <h1 className="mt-8 mb-4 text-xl font-bold" {...props} />,
+                                                        h2: ({ node, ...props }) => <h2 className="mt-8 mb-4 text-lg font-bold" {...props} />,
+                                                        h3: ({ node, ...props }) => <h3 className="mt-6 mb-3 text-base font-bold" {...props} />,
+                                                        blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-primary pl-4 italic my-4" {...props} />,
+                                                    }}
+                                                >
                                                     {m.content}
                                                 </ReactMarkdown>
                                             </div>
@@ -437,7 +456,12 @@ export default function AgentView() {
                                     </Button>
                                 </form>
                                 <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                                    {["Analyze Summary", "High Cost Ads", "Best Creative?", "CPL Trend"].map(suggestion => (
+                                    {[
+                                        "Ringkas performa minggu ini",
+                                        "Campaign mana paling efisien?",
+                                        "Adset mana yang harus dimatikan?",
+                                        "Bandingkan semua campaign"
+                                    ].map(suggestion => (
                                         <Button
                                             key={suggestion}
                                             variant="outline"

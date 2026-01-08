@@ -12,11 +12,13 @@ import {
     Users,
     Settings,
     ChevronDown,
+    LogOut,
     Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SyncButton } from "./SyncButton";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface NavItem {
     title: string;
@@ -45,10 +47,9 @@ const navGroups: NavGroup[] = [
                 icon: BarChart3,
             },
             {
-                title: "AI Analyst",
+                title: "AI Command Center",
                 url: "/analyst",
                 icon: Sparkles,
-                badge: "New",
             },
         ],
     },
@@ -145,6 +146,23 @@ function NavGroupSection({ group }: { group: NavGroup }) {
 }
 
 export function AppSidebar() {
+    const router = useRouter();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        try {
+            await fetch("/api/auth/logout", {
+                method: "POST",
+            });
+            router.push("/login");
+            router.refresh();
+        } catch (error) {
+            console.error("Logout failed", error);
+            setIsLoggingOut(false);
+        }
+    };
+
     return (
         <div className="h-screen w-64 bg-slate-900 text-white flex flex-col border-r border-slate-800">
             {/* Header */}
@@ -165,6 +183,14 @@ export function AppSidebar() {
             {/* Footer */}
             <div className="p-4 border-t border-slate-800 flex flex-col gap-4">
                 <SyncButton />
+                <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-md transition-colors w-full"
+                >
+                    <LogOut className="h-4 w-4" />
+                    <span>{isLoggingOut ? "Logging out..." : "Log Out"}</span>
+                </button>
                 <div className="text-center">
                     <p className="text-xs text-slate-500">v2.0.0 - Platform Edition</p>
                 </div>

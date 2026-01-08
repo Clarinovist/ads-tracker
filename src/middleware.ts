@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decrypt } from '@/lib/auth';
+import { decrypt, updateSession } from '@/lib/auth';
 
 export async function middleware(request: NextRequest) {
     const session = request.cookies.get('session')?.value;
@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
 
     try {
         await decrypt(session);
-        return NextResponse.next();
+        return await updateSession(request);
     } catch (error) {
         return NextResponse.redirect(new URL('/login', request.url));
     }

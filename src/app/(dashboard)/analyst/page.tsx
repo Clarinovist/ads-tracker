@@ -2,8 +2,8 @@ import { Suspense } from 'react';
 import AgentView from '@/components/analyst/AgentView';
 
 export const metadata = {
-    title: 'Data Analyst Agent | Ads Tracker',
-    description: 'AI-powered campaign analysis',
+    title: 'AI Command Center | Ads Tracker',
+    description: 'Pusat komando AI untuk analisa strategis bisnis',
 };
 
 export default function AnalystPage() {
