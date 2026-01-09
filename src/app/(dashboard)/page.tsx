@@ -1,18 +1,19 @@
 import { prisma } from '@/lib/prisma';
 import { DateRangePicker } from '@/components/DateRangePicker';
-import OverviewCharts from '@/components/OverviewCharts';
 import CampaignsTable, { CampaignRow } from '@/components/CampaignsTable';
 import AdsTable, { AdRow } from '@/components/AdsTable';
-import { startOfDay, endOfDay, format } from 'date-fns';
+import { startOfDay, endOfDay } from 'date-fns';
 import { MetricsCard } from '@/components/MetricsCard';
-import { MessagingTimeDistribution } from '@/components/analytics/MessagingTimeDistribution';
+import { Button } from '@/components/ui/button';
 import {
     DollarSign,
     Users,
     MousePointer2,
     BarChart3,
     Target,
-    Zap
+    Zap,
+    Download,
+    TrendingUp
 } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
@@ -42,8 +43,6 @@ export default async function DashboardPage({
     });
 
     // 2. Fetch Campaigns with aggregated insights
-    // Prisma doesn't support complex aggregations on relations easily in one go with simple types,
-    // so we fetch campaigns and their insights for the period.
     const campaignsData = await prisma.campaign.findMany({
         where: { business_id: { in: businesses.map((b: any) => b.id) } },
         include: {
@@ -109,27 +108,42 @@ export default async function DashboardPage({
         return { id: a.id, name: a.name, status: a.status || 'UNKNOWN', ...stats };
     }).filter((a) => a.status === 'ACTIVE' && a.spend > 0);
 
-
-    // Chart Data
-    const groupedData: Record<string, any> = {};
-    insights.forEach((i: any) => {
-        const dateKey = format(i.date, 'yyyy-MM-dd');
-        if (!groupedData[dateKey]) groupedData[dateKey] = { date: format(i.date, 'MMM dd') };
-        groupedData[dateKey][`${i.business_id}_spend`] = i.spend;
-        groupedData[dateKey][`${i.business_id}_leads`] = i.leads;
-    });
-    const chartData = Object.values(groupedData);
-
     const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
 
     return (
         <div className="space-y-6 md:space-y-8 pb-8">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-200/60 pb-6">
+            {/* Header Section */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Global Dashboard</h1>
-                    <p className="text-sm text-slate-500 mt-1">Omni-channel performance overview across all businesses.</p>
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Global Dashboard</h1>
+                    </div>
+                    <p className="text-sm text-slate-500 mt-1 ml-3">Omni-channel performance overview across all businesses.</p>
                 </div>
-                <DateRangePicker />
+                <div className="flex items-center gap-3">
+                    <Button variant="outline" size="sm" className="gap-2 rounded-xl">
+                        <Download className="h-4 w-4" />
+                        Export
+                    </Button>
+                    <DateRangePicker />
+                </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-1 border-b border-slate-200">
+                <div className="px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px bg-indigo-50/50 rounded-t-lg">
+                    Overview
+                </div>
+                <a href="/campaigns" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
+                    Campaigns
+                </a>
+                <a href="/ads" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
+                    Ads
+                </a>
+                <a href="/comparison" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
+                    Charts
+                </a>
             </div>
 
             {businesses.length === 0 ? (
@@ -140,33 +154,35 @@ export default async function DashboardPage({
                 </div>
             ) : (
                 <div className="space-y-8 animate-in fade-in duration-500">
-                    {/* Primary Stats - Hero Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Primary Stats - Hero Section with Gradient Variants */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <MetricsCard
                             title="Total Spend"
                             value={currencyFormatter.format(totalKpi.spend)}
                             icon={DollarSign}
                             iconColor="text-indigo-600"
-                            className="md:col-span-2 bg-gradient-to-br from-white to-slate-50/50"
+                            variant="gradient"
+                            trend={{ value: 12, isPositive: true, label: "vs last period" }}
                         />
                         <MetricsCard
                             title="Total Leads"
-                            value={totalKpi.leads}
+                            value={totalKpi.leads.toLocaleString()}
                             icon={Users}
                             iconColor="text-purple-600"
-                            className="bg-white"
+                            variant="gradient"
+                            trend={{ value: 8, isPositive: true, label: "vs last period" }}
                         />
                         <MetricsCard
-                            title="Conversions"
-                            value={totalKpi.conversions}
-                            icon={Zap}
-                            iconColor="text-amber-500"
-                            className="bg-white"
+                            title="Active Campaigns"
+                            value={campaignRows.length}
+                            icon={TrendingUp}
+                            iconColor="text-emerald-600"
+                            variant="gradient"
                         />
                     </div>
 
                     {/* Secondary Metrics - Efficiency Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <MetricsCard
                             title="CPM"
                             value={currencyFormatter.format(globalCPM)}
@@ -197,28 +213,28 @@ export default async function DashboardPage({
                         />
                     </div>
 
-                    {/* Charts Section */}
-                    <div className="grid grid-cols-1 gap-4">
-                        <OverviewCharts data={chartData} businesses={businesses} />
-                        <MessagingTimeDistribution dateFrom={fromDate.toISOString()} dateTo={toDate.toISOString()} />
+                    {/* Detailed Tables Section */}
+                    <div className="space-y-6">
+                        {/* Section Header */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-lg font-semibold text-slate-900">Campaign Performance</h3>
+                                <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                                    {campaignRows.length} Active
+                                </span>
+                            </div>
+                        </div>
+                        <CampaignsTable campaigns={campaignRows} />
                     </div>
 
-                    {/* Detailed Tables Section */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 pt-4">
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                                <div className="w-1 h-5 bg-indigo-500 rounded-full" />
-                                Top Campaigns
-                            </h3>
-                            <CampaignsTable campaigns={campaignRows} />
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold text-slate-900">Top Ads</h3>
+                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                                {adRows.length} Active
+                            </span>
                         </div>
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                                <div className="w-1 h-5 bg-pink-500 rounded-full" />
-                                Top Ads
-                            </h3>
-                            <AdsTable ads={adRows} />
-                        </div>
+                        <AdsTable ads={adRows} />
                     </div>
                 </div>
             )}

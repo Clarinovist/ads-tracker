@@ -72,8 +72,11 @@ function CampaignsContent() {
         <div className="space-y-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Active Campaigns</h2>
-                    <p className="text-slate-500">Analyze performance across all active Meta campaigns.</p>
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
+                        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Active Campaigns</h2>
+                    </div>
+                    <p className="text-slate-500 ml-3">Analyze performance across all active Meta campaigns.</p>
                 </div>
                 <DateRangePicker date={dateRange} setDate={setDateRange as any} />
             </div>

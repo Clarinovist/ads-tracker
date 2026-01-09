@@ -150,8 +150,11 @@ export default function SettingsPage() {
     return (
         <div className="space-y-6 md:space-y-8">
             <div>
-                <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Settings</h2>
-                <p className="text-sm text-slate-500">Manage your platform preferences and system configuration.</p>
+                <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
+                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Settings</h2>
+                </div>
+                <p className="text-sm text-slate-500 ml-3">Manage your platform preferences and system configuration.</p>
             </div>
 
             <div className="grid gap-6">

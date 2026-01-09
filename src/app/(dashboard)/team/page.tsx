@@ -49,10 +49,13 @@ export default function TeamPage() {
         <div className="space-y-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Team & Access</h2>
-                    <p className="text-slate-500">Manage user roles and business permissions.</p>
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
+                        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Team & Access</h2>
+                    </div>
+                    <p className="text-slate-500 ml-3">Manage user roles and business permissions.</p>
                 </div>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm gap-2">
+                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm gap-2">
                     <UserPlus className="h-4 w-4" />
                     Invite Member
                 </Button>

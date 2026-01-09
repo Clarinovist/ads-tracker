@@ -123,3 +123,41 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Scrollbar Utilities */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-track-transparent {
+    scrollbar-color: transparent transparent;
+  }
+  
+  .scrollbar-thumb-indigo-800\/50 {
+    scrollbar-color: rgba(55, 48, 163, 0.5) transparent;
+  }
+  
+  .hover\:scrollbar-thumb-indigo-700\/50:hover {
+    scrollbar-color: rgba(67, 56, 202, 0.5) transparent;
+  }
+  
+  /* Webkit Scrollbar Styles */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(55, 48, 163, 0.5);
+    border-radius: 9999px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(67, 56, 202, 0.6);
+  }
+}

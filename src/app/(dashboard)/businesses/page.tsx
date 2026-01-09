@@ -32,7 +32,10 @@ export default async function BusinessesPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Manage Businesses</h1>
+                <div className="flex items-center gap-2">
+                    <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Manage Businesses</h1>
+                </div>
             </div>
             <BusinessList initialData={plainBusinesses} />
         </div>

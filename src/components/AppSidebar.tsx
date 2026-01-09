@@ -103,7 +103,7 @@ function NavGroupSection({ group }: { group: NavGroup }) {
         <div className="mb-4">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors"
+                className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-indigo-300/70 uppercase tracking-wider hover:text-indigo-200 transition-colors"
             >
                 <span>{group.title}</span>
                 <ChevronDown
@@ -123,16 +123,16 @@ function NavGroupSection({ group }: { group: NavGroup }) {
                                 key={item.url}
                                 href={item.url}
                                 className={cn(
-                                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all",
+                                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
                                     isActive
-                                        ? "bg-slate-800 text-white shadow-sm"
-                                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
+                                        : "text-slate-300 hover:text-white hover:bg-indigo-500/20"
                                 )}
                             >
                                 <item.icon className="h-4 w-4 shrink-0" />
                                 <span>{item.title}</span>
                                 {item.badge && (
-                                    <span className="ml-auto text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                                    <span className="ml-auto text-xs bg-indigo-400 text-white px-2 py-0.5 rounded-full">
                                         {item.badge}
                                     </span>
                                 )}
@@ -164,35 +164,42 @@ export function AppSidebar() {
     };
 
     return (
-        <div className="h-full w-64 bg-slate-900 text-white flex flex-col border-r border-slate-800">
+        <div className="h-full w-64 bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-900 text-white flex flex-col border-r border-indigo-900/50">
             {/* Header */}
-            <div className="p-6 border-b border-slate-800">
-                <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                    Ad Operations
-                </h1>
-                <p className="text-xs text-slate-500 mt-1">Performance Platform</p>
+            <div className="p-6 border-b border-indigo-800/30">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30">
+                        <BarChart3 className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-bold tracking-tight text-white">
+                            Ads Tracker
+                        </h1>
+                        <p className="text-xs text-indigo-300/60">Performance Platform</p>
+                    </div>
+                </div>
             </div>
 
             {/* Navigation Groups */}
-            <nav className="flex-1 p-4 overflow-y-auto">
+            <nav className="flex-1 p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-800/50 scrollbar-track-transparent hover:scrollbar-thumb-indigo-700/50">
                 {navGroups.map((group) => (
                     <NavGroupSection key={group.title} group={group} />
                 ))}
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-slate-800 flex flex-col gap-4">
+            <div className="p-4 border-t border-indigo-800/30 flex flex-col gap-3">
                 <SyncButton />
                 <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-md transition-colors w-full"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-indigo-500/20 rounded-xl transition-all w-full"
                 >
                     <LogOut className="h-4 w-4" />
                     <span>{isLoggingOut ? "Logging out..." : "Log Out"}</span>
                 </button>
-                <div className="text-center">
-                    <p className="text-xs text-slate-500">v2.0.0 - Platform Edition</p>
+                <div className="text-center pt-2 border-t border-indigo-800/20">
+                    <p className="text-xs text-indigo-300/50">v2.0.0 - Platform Edition</p>
                 </div>
             </div>
         </div>
