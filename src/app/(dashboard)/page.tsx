@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import CampaignsTable, { CampaignRow } from '@/components/CampaignsTable';
+import { DashboardTabs } from '@/components/DashboardTabs';
 import AdsTable, { AdRow } from '@/components/AdsTable';
 import { startOfDay, endOfDay, subDays, startOfMonth } from 'date-fns';
 import { MetricsCard } from '@/components/MetricsCard';
@@ -131,20 +132,8 @@ export default async function DashboardPage({
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex items-center gap-1 border-b border-slate-200">
-                <div className="px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px bg-indigo-50/50 rounded-t-lg">
-                    Overview
-                </div>
-                <a href="/campaigns" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
-                    Campaigns
-                </a>
-                <a href="/ads" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
-                    Ads
-                </a>
-                <a href="/comparison" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
-                    Charts
-                </a>
-            </div>
+            {/* Tab Navigation */}
+            <DashboardTabs />
 
             {businesses.length === 0 ? (
                 <div className="p-12 text-center border border-dashed rounded-xl bg-slate-50 border-slate-300">

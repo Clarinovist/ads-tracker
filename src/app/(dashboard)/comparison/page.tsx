@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { DateRangePicker } from '@/components/DateRangePicker';
+import { DashboardTabs } from '@/components/DashboardTabs';
 import OverviewCharts from '@/components/OverviewCharts';
 import { MessagingTimeDistribution } from '@/components/analytics/MessagingTimeDistribution';
 import {
@@ -83,21 +84,9 @@ export default async function ComparisonPage({
                 <DateRangePicker />
             </div>
 
+
             {/* Tab Navigation */}
-            <div className="flex items-center gap-1 border-b border-slate-200">
-                <a href="/" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
-                    Overview
-                </a>
-                <a href="/campaigns" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
-                    Campaigns
-                </a>
-                <a href="/ads" className="px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-colors">
-                    Ads
-                </a>
-                <div className="px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px bg-indigo-50/50 rounded-t-lg">
-                    Charts
-                </div>
-            </div>
+            <DashboardTabs />
 
             {/* Charts Section - Moved from Dashboard */}
             <div className="space-y-6">
