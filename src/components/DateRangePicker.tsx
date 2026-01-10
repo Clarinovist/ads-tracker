@@ -1,7 +1,5 @@
-"use client";
-
 import * as React from "react";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { format, subDays, startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -27,14 +25,18 @@ export function DateRangePicker({
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // Parse params or default to Last 7 Days
+    // Parse params or default to This Month
     const fromParam = searchParams.get('from');
     const toParam = searchParams.get('to');
 
-    const yesterday = subDays(new Date(), 1);
+    const today = new Date();
+    // Default to This Month
+    const defaultFrom = startOfMonth(today);
+    const defaultTo = today;
+
     const [internalDate, setInternalDate] = React.useState<DateRange | undefined>({
-        from: fromParam ? new Date(fromParam) : yesterday,
-        to: toParam ? new Date(toParam) : yesterday,
+        from: fromParam ? new Date(fromParam) : defaultFrom,
+        to: toParam ? new Date(toParam) : defaultTo,
     });
 
     const date = externalDate || internalDate;
@@ -46,7 +48,7 @@ export function DateRangePicker({
         }
     };
 
-    const [preset, setPreset] = React.useState(fromParam ? "custom" : "yesterday");
+    const [preset, setPreset] = React.useState(fromParam ? "custom" : "this_month");
 
     const handleSelect = (range: DateRange | undefined) => {
         setDate(range);
