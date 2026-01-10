@@ -19,7 +19,7 @@ import {
     Sparkles
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { startOfMonth, endOfDay, format, startOfDay } from "date-fns";
+import { startOfMonth, endOfDay, format, startOfDay, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,9 +49,10 @@ function AdsContent() {
     const [ads, setAds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE'>('ACTIVE');
+    const yesterday = subDays(new Date(), 1);
     const [dateRange, setDateRange] = useState({
-        from: fromParam ? startOfDay(new Date(fromParam)) : startOfDay(new Date()),
-        to: toParam ? endOfDay(new Date(toParam)) : endOfDay(new Date())
+        from: fromParam ? startOfDay(new Date(fromParam)) : startOfDay(yesterday),
+        to: toParam ? endOfDay(new Date(toParam)) : endOfDay(yesterday)
     });
     const [selectedAd, setSelectedAd] = useState<any>(null);
     const [selectedAdForAnalysis, setSelectedAdForAnalysis] = useState<any>(null);

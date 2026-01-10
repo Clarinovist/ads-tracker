@@ -8,7 +8,7 @@ import {
     TrendingUp,
     DollarSign,
 } from "lucide-react";
-import { startOfMonth, endOfDay, format, startOfDay } from "date-fns";
+import { startOfMonth, endOfDay, format, startOfDay, subDays } from "date-fns";
 import { Suspense } from "react";
 import CampaignsTable, { CampaignRow } from "@/components/CampaignsTable";
 import { useSearchParams } from "next/navigation";
@@ -21,9 +21,10 @@ function CampaignsContent() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const yesterday = subDays(new Date(), 1);
     const [dateRange, setDateRange] = useState({
-        from: fromParam ? startOfDay(new Date(fromParam)) : startOfDay(new Date()),
-        to: toParam ? endOfDay(new Date(toParam)) : endOfDay(new Date())
+        from: fromParam ? startOfDay(new Date(fromParam)) : startOfDay(yesterday),
+        to: toParam ? endOfDay(new Date(toParam)) : endOfDay(yesterday)
     });
 
     const fetchData = async () => {

@@ -31,9 +31,10 @@ export function DateRangePicker({
     const fromParam = searchParams.get('from');
     const toParam = searchParams.get('to');
 
+    const yesterday = subDays(new Date(), 1);
     const [internalDate, setInternalDate] = React.useState<DateRange | undefined>({
-        from: fromParam ? new Date(fromParam) : new Date(),
-        to: toParam ? new Date(toParam) : new Date(),
+        from: fromParam ? new Date(fromParam) : yesterday,
+        to: toParam ? new Date(toParam) : yesterday,
     });
 
     const date = externalDate || internalDate;
@@ -45,7 +46,7 @@ export function DateRangePicker({
         }
     };
 
-    const [preset, setPreset] = React.useState(fromParam ? "custom" : "today");
+    const [preset, setPreset] = React.useState(fromParam ? "custom" : "yesterday");
 
     const handleSelect = (range: DateRange | undefined) => {
         setDate(range);

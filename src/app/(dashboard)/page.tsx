@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import CampaignsTable, { CampaignRow } from '@/components/CampaignsTable';
 import AdsTable, { AdRow } from '@/components/AdsTable';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, subDays } from 'date-fns';
 import { MetricsCard } from '@/components/MetricsCard';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,9 +24,9 @@ export default async function DashboardPage({
     searchParams: Promise<{ from?: string; to?: string }>;
 }) {
     const params = await searchParams;
-    const today = new Date();
-    const fromDate = params.from ? startOfDay(new Date(params.from)) : startOfDay(today);
-    const toDate = params.to ? endOfDay(new Date(params.to)) : endOfDay(today);
+    const yesterday = subDays(new Date(), 1);
+    const fromDate = params.from ? startOfDay(new Date(params.from)) : startOfDay(yesterday);
+    const toDate = params.to ? endOfDay(new Date(params.to)) : endOfDay(yesterday);
 
     // Fetch all businesses
     const businesses = await prisma.business.findMany({

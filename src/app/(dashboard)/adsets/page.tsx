@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { startOfMonth, endOfDay } from "date-fns";
+import { startOfMonth, endOfDay, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,9 +45,10 @@ function AdSetsContent() {
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE'>('ACTIVE');
     const [sortKey, setSortKey] = useState<SortKey>('spend');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const yesterday = subDays(new Date(), 1);
     const [dateRange, setDateRange] = useState({
-        from: new Date(),
-        to: endOfDay(new Date())
+        from: yesterday,
+        to: endOfDay(yesterday)
     });
 
     const fetchData = async () => {
