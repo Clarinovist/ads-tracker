@@ -84,8 +84,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function CampaignsTable({ campaigns, maxSpend }: CampaignsTableProps) {
-    // 1. Filter Active Only (Safeguard) + Spend > 0 (Actually Running)
-    const activeCampaigns = campaigns.filter(c => c.status === 'ACTIVE' && c.spend > 0);
+    // 1. Filter: Ensure we only process valid rows (already filtered by parent, but good safety)
+    const validCampaigns = campaigns;
 
     const [sortKey, setSortKey] = useState<SortKey>('spend');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -105,12 +105,12 @@ export default function CampaignsTable({ campaigns, maxSpend }: CampaignsTablePr
         setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    if (activeCampaigns.length === 0) {
+    if (validCampaigns.length === 0) {
         return (
             <div className="bg-white rounded-xl border border-slate-200 p-8">
                 <div className="text-center py-6">
                     <Target className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500">No active campaigns found.</p>
+                    <p className="text-slate-500">No campaigns found for this period.</p>
                 </div>
             </div>
         );
@@ -126,7 +126,7 @@ export default function CampaignsTable({ campaigns, maxSpend }: CampaignsTablePr
     };
 
     // Calculate derived metrics for sorting
-    const processed = activeCampaigns.map(row => {
+    const processed = validCampaigns.map(row => {
         const cpm = row.impressions > 0 ? (row.spend / row.impressions) * 1000 : 0;
         const ctr = row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0;
         const cpl = row.leads > 0 ? row.spend / row.leads : 0;
@@ -156,7 +156,7 @@ export default function CampaignsTable({ campaigns, maxSpend }: CampaignsTablePr
                 <div className="flex items-center gap-2">
                     <div className="w-1 h-5 bg-indigo-500 rounded-full" />
                     <h3 className="font-semibold text-slate-900">Campaign Performance</h3>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{activeCampaigns.length} Active</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{validCampaigns.length} Campaigns</span>
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

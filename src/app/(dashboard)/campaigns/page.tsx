@@ -21,10 +21,10 @@ function CampaignsContent() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const yesterday = subDays(new Date(), 1);
+    const now = new Date();
     const [dateRange, setDateRange] = useState({
-        from: fromParam ? startOfDay(new Date(fromParam)) : startOfDay(yesterday),
-        to: toParam ? endOfDay(new Date(toParam)) : endOfDay(yesterday)
+        from: fromParam ? startOfDay(new Date(fromParam)) : startOfMonth(now),
+        to: toParam ? endOfDay(new Date(toParam)) : endOfDay(now)
     });
 
     const fetchData = async () => {
@@ -46,10 +46,10 @@ function CampaignsContent() {
         fetchData();
     }, [dateRange]);
 
-    // FILTER ACTIVE ONLY
-    const activeCampaigns = campaigns.filter(c => c.status === 'ACTIVE');
+    // FILTER BY SPEND (PERIOD-BASED)
+    const visibleCampaigns = campaigns.filter(c => c.aggregate.spend > 0);
 
-    const totals = activeCampaigns.reduce((acc, camp) => ({
+    const totals = visibleCampaigns.reduce((acc, camp) => ({
         spend: acc.spend + camp.aggregate.spend,
         leads: acc.leads + camp.aggregate.leads,
         clicks: acc.clicks + (camp.aggregate.clicks || 0),
@@ -59,7 +59,7 @@ function CampaignsContent() {
     const avgRoas = totals.spend > 0 ? totals.revenue / totals.spend : 0;
 
     // Transform to CampaignRow format
-    const campaignRows: CampaignRow[] = activeCampaigns.map(c => ({
+    const campaignRows: CampaignRow[] = visibleCampaigns.map(c => ({
         id: c.id,
         name: c.name,
         status: c.status,
@@ -75,9 +75,9 @@ function CampaignsContent() {
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
-                        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Active Campaigns</h2>
+                        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Campaigns</h2>
                     </div>
-                    <p className="text-slate-500 ml-3">Analyze performance across all active Meta campaigns.</p>
+                    <p className="text-slate-500 ml-3">Analyze campaign performance for the selected period.</p>
                 </div>
                 <DateRangePicker date={dateRange} setDate={setDateRange as any} />
             </div>

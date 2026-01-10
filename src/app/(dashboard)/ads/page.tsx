@@ -48,11 +48,11 @@ function AdsContent() {
 
     const [ads, setAds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE'>('ACTIVE');
-    const yesterday = subDays(new Date(), 1);
+    const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE'>('ALL');
+    const now = new Date();
     const [dateRange, setDateRange] = useState({
-        from: fromParam ? startOfDay(new Date(fromParam)) : startOfDay(yesterday),
-        to: toParam ? endOfDay(new Date(toParam)) : endOfDay(yesterday)
+        from: fromParam ? startOfDay(new Date(fromParam)) : startOfMonth(now),
+        to: toParam ? endOfDay(new Date(toParam)) : endOfDay(now)
     });
     const [selectedAd, setSelectedAd] = useState<any>(null);
     const [selectedAdForAnalysis, setSelectedAdForAnalysis] = useState<any>(null);

@@ -136,7 +136,7 @@ export default function AdsTable({ ads, maxSpend }: AdsTableProps) {
                 <div className="flex items-center gap-2">
                     <div className="w-1 h-5 bg-pink-500 rounded-full" />
                     <h3 className="font-semibold text-slate-900">Top Performing Ads</h3>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{ads.length} Active</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{ads.length} Ads</span>
                 </div>
             </div>
 

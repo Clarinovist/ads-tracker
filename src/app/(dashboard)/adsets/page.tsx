@@ -42,13 +42,13 @@ function AdSetsContent() {
 
     const [adSets, setAdSets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE'>('ACTIVE');
+    const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE'>('ALL');
     const [sortKey, setSortKey] = useState<SortKey>('spend');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    const yesterday = subDays(new Date(), 1);
+    const now = new Date();
     const [dateRange, setDateRange] = useState({
-        from: yesterday,
-        to: endOfDay(yesterday)
+        from: startOfMonth(now),
+        to: endOfDay(now)
     });
 
     const fetchData = async () => {

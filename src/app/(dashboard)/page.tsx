@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import CampaignsTable, { CampaignRow } from '@/components/CampaignsTable';
 import AdsTable, { AdRow } from '@/components/AdsTable';
-import { startOfDay, endOfDay, subDays } from 'date-fns';
+import { startOfDay, endOfDay, subDays, startOfMonth } from 'date-fns';
 import { MetricsCard } from '@/components/MetricsCard';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,9 +24,9 @@ export default async function DashboardPage({
     searchParams: Promise<{ from?: string; to?: string }>;
 }) {
     const params = await searchParams;
-    const yesterday = subDays(new Date(), 1);
-    const fromDate = params.from ? startOfDay(new Date(params.from)) : startOfDay(yesterday);
-    const toDate = params.to ? endOfDay(new Date(params.to)) : endOfDay(yesterday);
+    const now = new Date();
+    const fromDate = params.from ? startOfDay(new Date(params.from)) : startOfMonth(now);
+    const toDate = params.to ? endOfDay(new Date(params.to)) : endOfDay(now);
 
     // Fetch all businesses
     const businesses = await prisma.business.findMany({
@@ -94,7 +94,7 @@ export default async function DashboardPage({
         }), { spend: 0, impressions: 0, clicks: 0, leads: 0 });
 
         return { id: c.id, name: c.name, status: c.status || 'UNKNOWN', ...stats };
-    }).filter((c) => c.status === 'ACTIVE' && c.spend > 0);
+    }).filter((c) => c.spend > 0);
 
     // Process Ad Rows
     const adRows: AdRow[] = adsData.map((a) => {
@@ -106,7 +106,7 @@ export default async function DashboardPage({
         }), { spend: 0, impressions: 0, clicks: 0, leads: 0 });
 
         return { id: a.id, name: a.name, status: a.status || 'UNKNOWN', ...stats };
-    }).filter((a) => a.status === 'ACTIVE' && a.spend > 0);
+    }).filter((a) => a.spend > 0);
 
     const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
 
@@ -173,7 +173,7 @@ export default async function DashboardPage({
                             trend={{ value: 8, isPositive: true, label: "vs last period" }}
                         />
                         <MetricsCard
-                            title="Active Campaigns"
+                            title="Total Campaigns"
                             value={campaignRows.length}
                             icon={TrendingUp}
                             iconColor="text-emerald-600"
@@ -215,25 +215,10 @@ export default async function DashboardPage({
 
                     {/* Detailed Tables Section */}
                     <div className="space-y-6">
-                        {/* Section Header */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <h3 className="text-lg font-semibold text-slate-900">Campaign Performance</h3>
-                                <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                                    {campaignRows.length} Active
-                                </span>
-                            </div>
-                        </div>
                         <CampaignsTable campaigns={campaignRows} />
                     </div>
 
                     <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold text-slate-900">Top Ads</h3>
-                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                                {adRows.length} Active
-                            </span>
-                        </div>
                         <AdsTable ads={adRows} />
                     </div>
                 </div>
