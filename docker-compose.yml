@@ -34,16 +34,19 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
     ports:
       - "3000:3000"
-    networks:
-      - ads-tracker-network
     depends_on:
       postgres:
         condition: service_healthy
     restart: always
+    networks:
+      - ads-tracker-network
+      - ceritakita-network  # Required for nginx reverse proxy access
 
 networks:
   ads-tracker-network:
     driver: bridge
+  ceritakita-network:
+    external: true
 
 volumes:
   postgres_data:

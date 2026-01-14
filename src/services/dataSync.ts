@@ -202,7 +202,7 @@ async function syncAds(businessId: string, adAccountId: string, dateStr: string,
         let creativeBody = null;
         let creativeTitle = null;
 
-        let creativeDynamicData: Prisma.InputJsonValue | null = null;
+        let creativeDynamicData: Prisma.InputJsonValue | undefined = undefined;
 
         if (ad.creative) {
             // Default to image_url or thumbnail_url for static content
