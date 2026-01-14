@@ -253,10 +253,22 @@ async function syncAds(businessId: string, adAccountId: string, dateStr: string,
 
     const insights = await fetchInsights(adAccountId, dateStr, token, 'ad');
     const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'ad');
+
+    const adIds = insights.map(i => i.ad_id).filter((id): id is string => !!id);
+    const uniqueAdIds = Array.from(new Set(adIds));
+
+    let existingAdIds = new Set<string>();
+    if (uniqueAdIds.length > 0) {
+        const existingAds = await prisma.ad.findMany({
+            where: { id: { in: uniqueAdIds } },
+            select: { id: true }
+        });
+        existingAdIds = new Set(existingAds.map(a => a.id));
+    }
+
     for (const insight of insights) {
         if (!insight.ad_id) continue;
-        const exists = await prisma.ad.count({ where: { id: insight.ad_id } });
-        if (!exists) continue;
+        if (!existingAdIds.has(insight.ad_id)) continue;
         await upsertAdInsight(insight.ad_id, insight, normalizedDate, breakdownStats[insight.ad_id]);
     }
 }
