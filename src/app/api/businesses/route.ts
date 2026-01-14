@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { backfillBusinessData } from '@/services/backfillBusiness';
@@ -80,9 +80,11 @@ export async function POST(req: Request) {
 
         // Automatically backfill last 30 days of data for the new business
         // Run in background to avoid blocking the response
-        backfillBusinessData(business.id, 30).catch(err => {
-            console.error(`Failed to backfill data for ${business.name}:`, err);
-        });
+        after(() =>
+            backfillBusinessData(business.id, 30).catch((err) => {
+                console.error(`Failed to backfill data for ${business.name}:`, err);
+            })
+        );
 
         // Return secure response
         const secureBusiness = {
