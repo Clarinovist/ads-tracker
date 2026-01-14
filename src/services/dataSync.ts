@@ -146,18 +146,23 @@ async function syncAdSets(businessId: string, adAccountId: string, dateStr: stri
     const adSets = await fetchAdSets(adAccountId, token);
     console.log(`   Fetched ${adSets.length} ad sets`);
 
-    for (const adSet of adSets) {
-        // Ensure campaign exists. If not, we might fail FK constraints. 
-        // We should have synced campaigns already.
-        const campaignExists = await prisma.campaign.count({ where: { id: adSet.campaign_id } });
-        if (!campaignExists) continue;
+    // Bulk check campaigns
+    const campaignIds = Array.from(new Set(adSets.map(a => a.campaign_id)));
+    const existingCampaigns = await prisma.campaign.findMany({
+        where: { id: { in: campaignIds } },
+        select: { id: true }
+    });
+    const existingCampaignIds = new Set(existingCampaigns.map(c => c.id));
 
-        await prisma.adSet.upsert({
+    const validAdSets = adSets.filter(adSet => existingCampaignIds.has(adSet.campaign_id));
+
+    await Promise.all(validAdSets.map(adSet =>
+        prisma.adSet.upsert({
             where: { id: adSet.id },
             update: { name: adSet.name, status: adSet.effective_status || adSet.status, campaign_id: adSet.campaign_id },
             create: { id: adSet.id, name: adSet.name, status: adSet.effective_status || adSet.status, campaign_id: adSet.campaign_id }
-        });
-    }
+        })
+    ));
 
     const insights = await fetchInsights(adAccountId, dateStr, token, 'adset');
     const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'adset');
