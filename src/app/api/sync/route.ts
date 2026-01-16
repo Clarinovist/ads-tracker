@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { syncDailyInsights } from '@/services/dataSync';
 import { prisma } from '@/lib/prisma';
 import { fetchAds, fetchLeads } from '@/lib/meta';
+import { Prisma } from '@prisma/client';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -62,9 +63,10 @@ export async function POST() {
                 await syncDailyInsights(date);
                 // Mini sleep between dates
                 await sleep(500);
-            } catch (e: any) {
-                console.error(`  Failed sync for ${date.toISOString().split('T')[0]}:`, e.message);
-                if (e.message?.includes('User request limit reached')) {
+            } catch (e: unknown) {
+                const message = e instanceof Error ? e.message : String(e);
+                console.error(`  Failed sync for ${date.toISOString().split('T')[0]}:`, message);
+                if (message.includes('User request limit reached')) {
                     console.warn('  Rate limit hit during insights. Waiting 2s...');
                     await sleep(2000);
                 }
@@ -113,7 +115,7 @@ export async function POST() {
                                                 email,
                                                 full_name: fullName,
                                                 phone_number: phone,
-                                                raw_data: lead.field_data as any
+                                                raw_data: lead.field_data as Prisma.InputJsonValue
                                             },
                                             update: {
                                                 ad_name: lead.ad_name,
@@ -121,21 +123,22 @@ export async function POST() {
                                                 email,
                                                 full_name: fullName,
                                                 phone_number: phone,
-                                                raw_data: lead.field_data as any
+                                                raw_data: lead.field_data as Prisma.InputJsonValue
                                             }
                                         });
                                     })
                                 );
                                 totalLeadsSynced += leads.length;
                             }
-                        } catch (err: any) {
+                        } catch (err: unknown) {
+                            const message = err instanceof Error ? err.message : String(err);
                             // If it's a permission error, we should probably warn specifically
-                            if (err.message?.includes('leads_retrieval') || err.message?.includes('pages_manage_ads')) {
+                            if (message.includes('leads_retrieval') || message.includes('pages_manage_ads')) {
                                 console.warn(`    Permission missing for ad ${ad.id} (Leads)`);
-                            } else if (err.message?.includes('User request limit reached')) {
+                            } else if (message.includes('User request limit reached')) {
                                 console.warn(`    Rate limit hit for ad ${ad.id} (Leads)`);
                             } else {
-                                console.error(`    Failed to sync leads for ad ${ad.id}:`, err.message);
+                                console.error(`    Failed to sync leads for ad ${ad.id}:`, message);
                             }
                         }
                     }));
@@ -145,8 +148,9 @@ export async function POST() {
                         await sleep(1000);
                     }
                 }
-            } catch (err: any) {
-                console.error(`  Failed to sync business ${business.name}:`, err.message);
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                console.error(`  Failed to sync business ${business.name}:`, message);
             }
         }
 
@@ -160,10 +164,11 @@ export async function POST() {
             leads: { count: totalLeadsSynced }
         });
 
-    } catch (error: any) {
-        console.error("[SmartSync] Critical Error:", error.message);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[SmartSync] Critical Error:", message);
         await updateSyncStatus('failed');
-        return NextResponse.json({ success: false, error: 'Sync failed: ' + error.message }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Sync failed: ' + message }, { status: 500 });
     } finally {
         setTimeout(async () => {
             const current = await prisma.systemSettings.findUnique({ where: { key: 'sync_status' } });

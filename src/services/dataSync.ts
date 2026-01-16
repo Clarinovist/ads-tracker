@@ -37,12 +37,17 @@ export async function syncDailyInsights(targetDate?: Date) {
 
         console.log(`📅 Syncing data for: ${dateStr}`);
 
-        for (const business of businesses) {
-            try {
-                await syncBusinessData(business, normalizedDate);
-            } catch (err) {
-                console.error(`❌ Failed to sync business ${business.name}:`, err);
-            }
+        // Sync businesses in parallel with concurrency limit
+        const CONCURRENCY_LIMIT = 5;
+        for (let i = 0; i < businesses.length; i += CONCURRENCY_LIMIT) {
+            const chunk = businesses.slice(i, i + CONCURRENCY_LIMIT);
+            await Promise.all(chunk.map(async (business) => {
+                try {
+                    await syncBusinessData(business, normalizedDate);
+                } catch (err) {
+                    console.error(`❌ Failed to sync business ${business.name}:`, err);
+                }
+            }));
         }
 
         console.log("🎉 Daily Sync Completed.");
@@ -64,9 +69,7 @@ export async function syncBusinessData(business: { id: string; name: string; ad_
     const token = business.access_token;
     const adAccountId = business.ad_account_id;
 
-    // Ensure strict normalization to midnight (Local -> UTC conversion handled by date-fns startOfDay relative to local execution context? 
-    // Actually, safest is to trust the passed date logic, but usually we want to strip time.
-    // startOfDay returns a Date with time 00:00:00 in LOCAL time.
+    // Ensure strict normalization to midnight
     const normalizedDate = startOfDay(date);
     const dateStr = format(normalizedDate, 'yyyy-MM-dd');
 
@@ -89,8 +92,10 @@ export async function syncBusinessData(business: { id: string; name: string; ad_
 }
 
 async function syncAccountInsights(businessId: string, adAccountId: string, dateStr: string, token: string, normalizedDate: Date) {
-    const insights = await fetchInsights(adAccountId, dateStr, token, 'account');
-    const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'account');
+    // Optimized: Fetch insights AND breakdown data in one call
+    const insights = await fetchInsights(adAccountId, dateStr, token, 'account', undefined, 'action_destination');
+    const breakdownStats = calculateBreakdownStats(insights, 'account');
+
     if (insights.length > 0) {
         await upsertDailyInsight(businessId, insights[0], normalizedDate, breakdownStats['account']);
     }
@@ -113,8 +118,9 @@ async function syncCampaigns(businessId: string, adAccountId: string, dateStr: s
         }));
     }
 
-    const insights = await fetchInsights(adAccountId, dateStr, token, 'campaign');
-    const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'campaign');
+    // Optimized: Fetch insights AND breakdown data in one call
+    const insights = await fetchInsights(adAccountId, dateStr, token, 'campaign', undefined, 'action_destination');
+    const breakdownStats = calculateBreakdownStats(insights, 'campaign');
     console.log(`   Fetched ${insights.length} campaign insights`);
 
     // Bulk check for existing campaigns to avoid N+1 queries
@@ -164,8 +170,9 @@ async function syncAdSets(businessId: string, adAccountId: string, dateStr: stri
         })
     ));
 
-    const insights = await fetchInsights(adAccountId, dateStr, token, 'adset');
-    const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'adset');
+    // Optimized: Fetch insights AND breakdown data in one call
+    const insights = await fetchInsights(adAccountId, dateStr, token, 'adset', undefined, 'action_destination');
+    const breakdownStats = calculateBreakdownStats(insights, 'adset');
 
     // Optimization: Batch fetch existing ad set IDs to avoid N+1 queries
     const adSetIds = insights
@@ -242,7 +249,7 @@ async function syncAds(businessId: string, adAccountId: string, dateStr: string,
             creative_type: creativeType,
             creative_body: creativeBody,
             creative_title: creativeTitle,
-            creative_dynamic_data: creativeDynamicData
+            creative_dynamic_data: creativeDynamicData ?? Prisma.JsonNull // Use JsonNull if undefined
         };
 
         // Separate update input to avoid updating ID
@@ -256,8 +263,9 @@ async function syncAds(businessId: string, adAccountId: string, dateStr: string,
         });
     }
 
-    const insights = await fetchInsights(adAccountId, dateStr, token, 'ad');
-    const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'ad');
+    // Optimized: Fetch insights AND breakdown data in one call
+    const insights = await fetchInsights(adAccountId, dateStr, token, 'ad', undefined, 'action_destination');
+    const breakdownStats = calculateBreakdownStats(insights, 'ad');
 
     const adIds = insights.map(i => i.ad_id).filter((id): id is string => !!id);
     const uniqueAdIds = Array.from(new Set(adIds));
@@ -518,15 +526,11 @@ async function upsertAdInsight(adId: string, i: MetaInsight, date: Date, breakdo
     });
 }
 
-async function fetchBreakdownStats(
-    adAccountId: string,
-    dateStr: string,
-    token: string,
+// Optimized Breakdown Calculation (Synchronous)
+function calculateBreakdownStats(
+    insights: MetaInsight[],
     level: 'account' | 'campaign' | 'adset' | 'ad'
 ) {
-    // We use action_breakdowns=action_destination to see the destination of actions within the actions list
-    // Pass undefined for 'breakdowns' (arg 5), and 'action_destination' for 'actionBreakdowns' (arg 6)
-    const insights = await fetchInsights(adAccountId, dateStr, token, level, undefined, 'action_destination');
     const stats: Record<string, { whatsapp: number, instagram: number, messenger: number }> = {};
 
     for (const item of insights) {
@@ -542,7 +546,6 @@ async function fetchBreakdownStats(
         if (!stats[id]) stats[id] = { whatsapp: 0, instagram: 0, messenger: 0 };
 
         if (item.actions) {
-            // Iterate actions to find lead actions and check their destination
             const leadActionTypes = [
                 'lead',
                 'onsite_conversion.lead_grouped',
@@ -562,11 +565,7 @@ async function fetchBreakdownStats(
                         stats[id].whatsapp += val;
                     } else if (dest.includes('instagram')) {
                         stats[id].instagram += val;
-                    } else if (dest.includes('messenger') || dest.includes(item.campaign_id!) || dest.length > 5 && !dest.includes('other')) {
-                        // Fallback: If destination matches page name or looks like an ID/Name and not explicit other channel, assume Messenger?
-                        // Actually, explicit 'facebook' or 'messenger' is better. 
-                        // But commonly Page Name appears for Messenger.
-                        // Let's assume non-WA non-IG is Messenger for now if it's a messaging metric.
+                    } else if (dest.includes('messenger') || dest.includes(item.campaign_id!) || (dest.length > 5 && !dest.includes('other'))) {
                         stats[id].messenger += val;
                     }
                 }

@@ -10,7 +10,7 @@ export interface MetaInsight {
     cpm?: string;
     cpp?: string;
     ctr?: string;
-    actions?: { action_type: string; value: string }[];
+    actions?: { action_type: string; value: string; action_destination?: string }[];
     action_values?: { action_type: string; value: string }[]; // Revenue tracking
     date_start: string;
     date_stop: string;
