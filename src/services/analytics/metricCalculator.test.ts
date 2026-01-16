@@ -12,7 +12,8 @@ describe('MetricCalculator', () => {
             action_values: [{ action_type: 'purchase', value: '500' }],
             date_start: '2023-01-01',
             date_stop: '2023-01-01',
-            id: '1'
+            reach: '800',
+            frequency: '1.2'
         };
 
         const result = MetricCalculator.parseMetrics(input);
@@ -41,7 +42,8 @@ describe('MetricCalculator', () => {
             clicks: '0',
             date_start: '2023-01-01',
             date_stop: '2023-01-01',
-            id: '1'
+            reach: '0',
+            frequency: '0'
         };
 
         const result = MetricCalculator.parseMetrics(input);
