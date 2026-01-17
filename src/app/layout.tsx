@@ -8,6 +8,12 @@ const systemMono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Libe
 export const metadata: Metadata = {
   title: "Ad Operations Platform",
   description: "Advanced Meta Ads Monitoring and Performance Management",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+      { url: "/favicon.ico", type: "image/x-icon" },
+    ],
+  },
 };
 
 export default function RootLayout({
