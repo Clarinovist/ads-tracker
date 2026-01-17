@@ -37,7 +37,6 @@ export async function GET(req: Request) {
         });
 
         // Aggregate by hour
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const hourlyDistribution = Array(24).fill(0).map((_, i) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const stat = (stats as any[]).find((s: any) => s.hour === i);

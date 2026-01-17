@@ -61,7 +61,7 @@ export function MessagingTimeDistribution({ dateFrom: rawFrom, dateTo: rawTo, bu
         };
 
         fetchData();
-    }, [rawFrom, rawTo, businessId]);
+    }, [dateFrom, dateTo, businessId]);
 
     if (!dateFrom || !dateTo) return null;
 

@@ -96,6 +96,7 @@ describe('POST /api/businesses', () => {
     // Verify the callback passed to after calls backfill
     expect(mockBackfill).not.toHaveBeenCalled(); // Shouldn't be called yet if we didn't run the callback
     if (capturedCallback) {
+        // @ts-expect-error - capturing callback strictly
         const result = capturedCallback();
         expect(result).toBeInstanceOf(Promise);
         await result;
