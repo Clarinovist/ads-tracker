@@ -1,8 +1,8 @@
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fetchAds, fetchLeads } from '@/lib/meta';
+import { Prisma } from '@prisma/client';
 
 // Force dynamic since we might use current time etc.
 export const dynamic = 'force-dynamic';
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
                                                 email,
                                                 full_name: fullName,
                                                 phone_number: phone,
-                                                raw_data: lead.field_data as any // Cast for Prisma Json compatibility
+                                                raw_data: lead.field_data as unknown as Prisma.InputJsonValue // Cast for Prisma Json compatibility
                                             },
                                             update: {
                                                 ad_name: lead.ad_name,
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
                                                 email,
                                                 full_name: fullName,
                                                 phone_number: phone,
-                                                raw_data: lead.field_data as any
+                                                raw_data: lead.field_data as unknown as Prisma.InputJsonValue
                                             }
                                         });
                                     })

@@ -42,12 +42,21 @@ export async function syncDailyInsights(targetDate?: Date) {
 
         console.log(`📅 Syncing data for: ${dateStr}`);
 
-        for (const business of businesses) {
-            try {
-                await syncBusinessData(business, normalizedDate);
-            } catch (err) {
-                console.error(`❌ Failed to sync business ${business.name}:`, err);
-            }
+        // Limit concurrency to 5 businesses at a time
+        const CONCURRENCY_LIMIT = 5;
+        const chunks = [];
+        for (let i = 0; i < businesses.length; i += CONCURRENCY_LIMIT) {
+            chunks.push(businesses.slice(i, i + CONCURRENCY_LIMIT));
+        }
+
+        for (const chunk of chunks) {
+            await Promise.all(chunk.map(async (business) => {
+                try {
+                    await syncBusinessData(business, normalizedDate);
+                } catch (err) {
+                    console.error(`❌ Failed to sync business ${business.name}:`, err);
+                }
+            }));
         }
 
         console.log("🎉 Daily Sync Completed.");
@@ -90,10 +99,13 @@ export async function syncBusinessData(business: { id: string; name: string; ad_
 }
 
 async function syncAccountInsights(businessId: string, adAccountId: string, dateStr: string, token: string, normalizedDate: Date) {
-    const insights = await fetchInsights(adAccountId, dateStr, token, 'account');
-    const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'account');
+    // Fetch insights AND breakdown stats in one call
+    const insights = await fetchInsights(adAccountId, dateStr, token, 'account', undefined, 'action_destination');
+
     if (insights.length > 0) {
-        await upsertDailyInsight(businessId, insights[0], normalizedDate, breakdownStats['account']);
+        const insight = insights[0];
+        const breakdownStats = calculateBreakdownStats([insight], 'account');
+        await upsertDailyInsight(businessId, insight, normalizedDate, breakdownStats['account']);
     }
 }
 
@@ -105,7 +117,7 @@ async function syncCampaigns(businessId: string, adAccountId: string, dateStr: s
     for (let i = 0; i < campaigns.length; i += CHUNK_SIZE) {
         const chunk = campaigns.slice(i, i + CHUNK_SIZE);
         await Promise.all(chunk.map(camp => {
-            console.log(`     -> Syncing Campaign: ${camp.name} (${camp.id}) status: ${camp.effective_status || camp.status}`);
+            // console.log(`     -> Syncing Campaign: ${camp.name} (${camp.id}) status: ${camp.effective_status || camp.status}`);
             return campaignRepo.upsert({
                 id: camp.id,
                 name: camp.name,
@@ -116,8 +128,9 @@ async function syncCampaigns(businessId: string, adAccountId: string, dateStr: s
         }));
     }
 
-    const insights = await fetchInsights(adAccountId, dateStr, token, 'campaign');
-    const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'campaign');
+    // Fetch insights AND breakdown stats in one call
+    const insights = await fetchInsights(adAccountId, dateStr, token, 'campaign', undefined, 'action_destination');
+    const breakdownStats = calculateBreakdownStats(insights, 'campaign');
     console.log(`   Fetched ${insights.length} campaign insights`);
 
     // Bulk check for existing campaigns to avoid N+1 queries
@@ -159,8 +172,8 @@ async function syncAdSets(businessId: string, adAccountId: string, dateStr: stri
         })
     ));
 
-    const insights = await fetchInsights(adAccountId, dateStr, token, 'adset');
-    const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'adset');
+    const insights = await fetchInsights(adAccountId, dateStr, token, 'adset', undefined, 'action_destination');
+    const breakdownStats = calculateBreakdownStats(insights, 'adset');
 
     // Optimization: Batch fetch existing ad set IDs to avoid N+1 queries
     const adSetIds = insights
@@ -180,66 +193,75 @@ async function syncAds(businessId: string, adAccountId: string, dateStr: string,
     const ads = await fetchAds(adAccountId, token);
     console.log(`   Fetched ${ads.length} ads`);
 
-    for (const ad of ads) {
-        const adSetExists = await adSetRepo.exists(ad.adset_id);
-        if (!adSetExists) continue;
+    // Batch ad upserts
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < ads.length; i += CHUNK_SIZE) {
+        const chunk = ads.slice(i, i + CHUNK_SIZE);
 
-        // Extract creative data
-        let creativeUrl = null;
-        let thumbnailUrl = null;
-        let creativeType = ad.creative?.object_type || null;
+        // Check adsets existance for this chunk
+        const adSetIds = Array.from(new Set(chunk.map(ad => ad.adset_id)));
+        const existingAdSetIds = await adSetRepo.findExistingIds(adSetIds);
 
-        let creativeBody = null;
-        let creativeTitle = null;
+        const validAds = chunk.filter(ad => existingAdSetIds.has(ad.adset_id));
 
-        let creativeDynamicData: Prisma.InputJsonValue | undefined = undefined;
+        await Promise.all(validAds.map(ad => {
+             // Extract creative data
+            let creativeUrl = null;
+            let thumbnailUrl = null;
+            let creativeType = ad.creative?.object_type || null;
 
-        if (ad.creative) {
-            // Default to image_url or thumbnail_url for static content
-            creativeUrl = ad.creative.image_url || ad.creative.thumbnail_url || null;
+            let creativeBody = null;
+            let creativeTitle = null;
 
-            if (ad.creative.video_id) {
-                creativeType = 'VIDEO';
-                thumbnailUrl = ad.creative.thumbnail_url || null;
-                creativeUrl = `https://www.facebook.com/video.php?v=${ad.creative.video_id}`;
+            let creativeDynamicData: Prisma.InputJsonValue | undefined = undefined;
+
+            if (ad.creative) {
+                // Default to image_url or thumbnail_url for static content
+                creativeUrl = ad.creative.image_url || ad.creative.thumbnail_url || null;
+
+                if (ad.creative.video_id) {
+                    creativeType = 'VIDEO';
+                    thumbnailUrl = ad.creative.thumbnail_url || null;
+                    creativeUrl = `https://www.facebook.com/video.php?v=${ad.creative.video_id}`;
+                }
+
+                // Extract Body (Caption)
+                creativeBody = ad.creative.body ||
+                    ad.creative.object_story_spec?.link_data?.message ||
+                    ad.creative.object_story_spec?.video_data?.message ||
+                    ad.creative.asset_feed_spec?.bodies?.[0]?.text || null;
+
+                // Extract Title (Headline)
+                creativeTitle = ad.creative.title ||
+                    ad.creative.object_story_spec?.link_data?.name ||
+                    ad.creative.object_story_spec?.video_data?.title ||
+                    ad.creative.asset_feed_spec?.titles?.[0]?.text || null;
+
+                if (ad.creative.asset_feed_spec) {
+                    // Store the full dynamic data
+                    creativeDynamicData = ad.creative.asset_feed_spec as unknown as Prisma.InputJsonValue;
+                }
             }
 
-            // Extract Body (Caption)
-            creativeBody = ad.creative.body ||
-                ad.creative.object_story_spec?.link_data?.message ||
-                ad.creative.object_story_spec?.video_data?.message ||
-                ad.creative.asset_feed_spec?.bodies?.[0]?.text || null;
+            const adData: AdUpsertData = {
+                id: ad.id,
+                name: ad.name,
+                status: ad.effective_status || ad.status,
+                ad_set_id: ad.adset_id,
+                creative_url: creativeUrl,
+                creative_title: creativeTitle,
+                creative_body: creativeBody,
+                creative_type: creativeType,
+                thumbnail_url: thumbnailUrl,
+                creative_dynamic_data: creativeDynamicData
+            };
 
-            // Extract Title (Headline)
-            creativeTitle = ad.creative.title ||
-                ad.creative.object_story_spec?.link_data?.name ||
-                ad.creative.object_story_spec?.video_data?.title ||
-                ad.creative.asset_feed_spec?.titles?.[0]?.text || null;
-
-            if (ad.creative.asset_feed_spec) {
-                // Store the full dynamic data
-                creativeDynamicData = ad.creative.asset_feed_spec as unknown as Prisma.InputJsonValue;
-            }
-        }
-
-        const adData: AdUpsertData = {
-            id: ad.id,
-            name: ad.name,
-            status: ad.effective_status || ad.status,
-            ad_set_id: ad.adset_id,
-            creative_url: creativeUrl,
-            creative_title: creativeTitle,
-            creative_body: creativeBody,
-            creative_type: creativeType,
-            thumbnail_url: thumbnailUrl,
-            creative_dynamic_data: creativeDynamicData
-        };
-
-        await adRepo.upsert(adData);
+            return adRepo.upsert(adData);
+        }));
     }
 
-    const insights = await fetchInsights(adAccountId, dateStr, token, 'ad');
-    const breakdownStats = await fetchBreakdownStats(adAccountId, dateStr, token, 'ad');
+    const insights = await fetchInsights(adAccountId, dateStr, token, 'ad', undefined, 'action_destination');
+    const breakdownStats = calculateBreakdownStats(insights, 'ad');
 
     const adIds = insights.map(i => i.ad_id).filter((id): id is string => !!id);
     const uniqueAdIds = Array.from(new Set(adIds));
@@ -257,7 +279,7 @@ async function syncAds(businessId: string, adAccountId: string, dateStr: string,
 }
 
 async function syncHourlyInsights(businessId: string, adAccountId: string, dateStr: string, token: string) {
-    console.log(`   Syncing Hourly Insights for ${dateStr}...`);
+    // console.log(`   Syncing Hourly Insights for ${dateStr}...`);
 
     const range = JSON.stringify({ since: dateStr, until: dateStr });
     const url = `https://graph.facebook.com/v19.0/${adAccountId}/insights?` +
@@ -302,9 +324,9 @@ async function syncHourlyInsights(businessId: string, adAccountId: string, dateS
                     });
                 })
             );
-            console.log(`   ✅ Synced ${records.length} hourly records.`);
+            // console.log(`   ✅ Synced ${records.length} hourly records.`);
         } else {
-            console.log(`   ℹ️ No hourly records found.`);
+            // console.log(`   ℹ️ No hourly records found.`);
         }
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
@@ -370,15 +392,10 @@ async function upsertAdInsight(adId: string, i: MetaInsight, date: Date, breakdo
     });
 }
 
-async function fetchBreakdownStats(
-    adAccountId: string,
-    dateStr: string,
-    token: string,
+function calculateBreakdownStats(
+    insights: MetaInsight[],
     level: 'account' | 'campaign' | 'adset' | 'ad'
 ) {
-    // We use action_breakdowns=action_destination to see the destination of actions within the actions list
-    // Pass undefined for 'breakdowns' (arg 5), and 'action_destination' for 'actionBreakdowns' (arg 6)
-    const insights = await fetchInsights(adAccountId, dateStr, token, level, undefined, 'action_destination');
     const stats: Record<string, { whatsapp: number, instagram: number, messenger: number }> = {};
 
     for (const item of insights) {
@@ -414,7 +431,7 @@ async function fetchBreakdownStats(
                         stats[id].whatsapp += val;
                     } else if (dest.includes('instagram')) {
                         stats[id].instagram += val;
-                    } else if (dest.includes('messenger') || dest.includes(item.campaign_id!) || dest.length > 5 && !dest.includes('other')) {
+                    } else if (dest.includes('messenger') || (item.campaign_id && dest.includes(item.campaign_id)) || (dest.length > 5 && !dest.includes('other'))) {
                         stats[id].messenger += val;
                     }
                 }

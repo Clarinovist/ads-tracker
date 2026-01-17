@@ -1,5 +1,4 @@
 
-
 export interface MetaInsight {
     spend: string;
     impressions: string;
