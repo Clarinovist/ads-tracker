@@ -49,7 +49,7 @@ jobs:
           cache-to: |
             type=registry,mode=max,ref=ghcr.io/${{ github.repository }}/ads-tracker-web:buildcache
 
-      - name: Optional: push runtime image to latest
+      - name: "Optional: push runtime image to latest"
         if: always()
         run: |
           echo "Runtime image already pushed by build-push-action via the 'tags' option above."
